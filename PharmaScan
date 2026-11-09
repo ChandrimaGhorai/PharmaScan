@@ -1,0 +1,202 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyMIvzaSs4d3Ks97Qvp12xV9",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/ChandrimaGhorai/PharmaScan/blob/main/PharmaScan\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install rdkit\n",
+        "\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "jizwvJ5KWgaE",
+        "outputId": "86183871-02ff-420a-bd84-7101b7a46743"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Requirement already satisfied: rdkit in /usr/local/lib/python3.13/dist-packages (2026.3.6)\n",
+            "Requirement already satisfied: numpy in /usr/local/lib/python3.13/dist-packages (from rdkit) (2.1.3)\n",
+            "Requirement already satisfied: Pillow in /usr/local/lib/python3.13/dist-packages (from rdkit) (11.3.0)\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ==========================================\n",
+        "# PharmaScan: Drug-Likeness Screening Engine\n",
+        "# (User-Friendly Chemical Structure Input)\n",
+        "# ==========================================\n",
+        "\n",
+        "from rdkit import Chem\n",
+        "from rdkit.Chem import Descriptors, Crippen\n",
+        "\n",
+        "def evaluate_drug_likeness(smiles, compound_name=\"Custom Compound\"):\n",
+        "    mol = Chem.MolFromSmiles(smiles)\n",
+        "    if not mol:\n",
+        "        print(f\"\\n[Error]: Could not parse the provided chemical structure for '{compound_name}'. Please ensure valid notation.\")\n",
+        "        return\n",
+        "\n",
+        "    # Lipinski Descriptors\n",
+        "    mw = Descriptors.MolWt(mol)\n",
+        "    logp = Crippen.MolLogP(mol)\n",
+        "    hbd = Descriptors.NumHDonors(mol)\n",
+        "    hba = Descriptors.NumHAcceptors(mol)\n",
+        "\n",
+        "    # Veber Descriptors (Flexibility & Polarity)\n",
+        "    tpsa = Descriptors.TPSA(mol)\n",
+        "    rot_bonds = Descriptors.NumRotatableBonds(mol)\n",
+        "\n",
+        "    # Rule Violation Tracking\n",
+        "    violations = 0\n",
+        "    violation_details = []\n",
+        "\n",
+        "    if mw > 500:\n",
+        "        violations += 1\n",
+        "        violation_details.append(f\"Molecular Weight ({mw:.2f} Da) exceeds 500\")\n",
+        "    if logp > 5:\n",
+        "        violations += 1\n",
+        "        violation_details.append(f\"LogP ({logp:.2f}) exceeds 5\")\n",
+        "    if hbd > 5:\n",
+        "        violations += 1\n",
+        "        violation_details.append(f\"Hydrogen Bond Donors ({hbd}) exceed 5\")\n",
+        "    if hba > 10:\n",
+        "        violations += 1\n",
+        "        violation_details.append(f\"Hydrogen Bond Acceptors ({hba}) exceed 10\")\n",
+        "    if tpsa > 140:\n",
+        "        violations += 1\n",
+        "        violation_details.append(f\"Topological Polar Surface Area ({tpsa:.2f} Å²) exceeds 140 Å²\")\n",
+        "    if rot_bonds > 10:\n",
+        "        violations += 1\n",
+        "        violation_details.append(f\"Rotatable Bonds ({rot_bonds}) exceed 10\")\n",
+        "\n",
+        "    # Classification verdict\n",
+        "    status = \"Favorable Drug-Likeness (Likely Orally Bioavailable)\" if violations <= 1 else \"Poor Bioavailability Risk (Multiple Rule Violations)\"\n",
+        "\n",
+        "    print(\"\\n\" + \"=\"*55)\n",
+        "    print(f\"PHARMASCAN SCREENING REPORT: {compound_name}\")\n",
+        "    print(\"=\"*55)\n",
+        "    print(f\"Chemical Structure (SMILES)   : {smiles}\")\n",
+        "    print(f\"Molecular Weight (MW)         : {mw:.2f} Da (Limit: <= 500)\")\n",
+        "    print(f\"Lipophilicity (LogP)          : {logp:.2f}   (Limit: <= 5)\")\n",
+        "    print(f\"Hydrogen Bond Donors (HBD)    : {hbd}       (Limit: <= 5)\")\n",
+        "    print(f\"Hydrogen Bond Acceptors (HBA) : {hba}      (Limit: <= 10)\")\n",
+        "    print(f\"Polar Surface Area (TPSA)     : {tpsa:.2f} Å²(Limit: <= 140)\")\n",
+        "    print(f\"Rotatable Bonds               : {rot_bonds}     (Limit: <= 10)\")\n",
+        "    print(\"-\" * 55)\n",
+        "    print(f\"Total Rule Violations         : {violations}\")\n",
+        "    if violation_details:\n",
+        "        for detail in violation_details:\n",
+        "            print(f\"  - Warning: {detail}\")\n",
+        "    print(f\"Screening Verdict             : {status}\")\n",
+        "    print(\"=\"*55)\n",
+        "\n",
+        "def main():\n",
+        "    print(\"=== PharmaScan: Cheminformatics Control Console ===\")\n",
+        "    print(\"Select Analysis Option:\")\n",
+        "    print(\"1. Screen Preset Benchmark Drug (e.g., Aspirin, Ibuprofen, Cyclosporin A)\")\n",
+        "    print(\"2. Enter Custom Chemical Structure\")\n",
+        "\n",
+        "    choice = input(\"\\nEnter choice (1 or 2): \").strip()\n",
+        "\n",
+        "    preset_db = {\n",
+        "        \"1\": {\"name\": \"Aspirin\", \"smiles\": \"CC(=O)Oc1ccccc1C(=O)O\"},\n",
+        "        \"2\": {\"name\": \"Ibuprofen\", \"smiles\": \"CC(C)Cc1ccc(cc1)C(C)C(=O)O\"},\n",
+        "        \"3\": {\"name\": \"Cyclosporin A (Large Molecule)\", \"smiles\": \"CCC1C(=O)N(CC(=O)N(C)CC(=O)N(C)CC(=O)N(C)CC(=O)N(C)C(C(=O)N(C)CC(=O)N(C)C(C(=O)N(C)C(C(=O)N(C)C(C(=O)N1)C(C)CC=CC)C)C(C)CC)CC(C)C)C\"}\n",
+        "    }\n",
+        "\n",
+        "    if choice == \"1\":\n",
+        "        print(\"\\nSelect preset compound:\")\n",
+        "        for k, v in preset_db.items():\n",
+        "            print(f\"[{k}] {v['name']}\")\n",
+        "        p_choice = input(\"Select option (1, 2, or 3): \").strip()\n",
+        "        selected = preset_db.get(p_choice, preset_db[\"1\"])\n",
+        "        evaluate_drug_likeness(selected[\"smiles\"], selected[\"name\"])\n",
+        "\n",
+        "    elif choice == \"2\":\n",
+        "        print(\"\\nTip: You can use standard notation format (e.g., Paracetamol: CC(=O)NC1=CC=C(C=C1)O)\")\n",
+        "        custom_structure = input(\"Enter Chemical Structure: \").strip()\n",
+        "        custom_name = input(\"Enter compound identifier/name: \").strip() or \"Custom Compound\"\n",
+        "        evaluate_drug_likeness(custom_structure, custom_name)\n",
+        "    else:\n",
+        "        print(\"[Error]: Invalid selection.\")\n",
+        "\n",
+        "if __name__ == \"__main__\":\n",
+        "    main()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "_-Bi5gAdXpbX",
+        "outputId": "206f2c0b-bb8b-42c9-f320-508d4f110788"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "=== PharmaScan: Cheminformatics Control Console ===\n",
+            "Select Analysis Option:\n",
+            "1. Screen Preset Benchmark Drug (e.g., Aspirin, Ibuprofen, Cyclosporin A)\n",
+            "2. Enter Custom Chemical Structure\n",
+            "\n",
+            "Enter choice (1 or 2): 2\n",
+            "\n",
+            "Tip: You can use standard notation format (e.g., Paracetamol: CC(=O)NC1=CC=C(C=C1)O)\n",
+            "Enter Chemical Structure: CC(=O)NC1=CC=C(C=C1)O\n",
+            "Enter compound identifier/name: Paracetamol\n",
+            "\n",
+            "=======================================================\n",
+            "PHARMASCAN SCREENING REPORT: Paracetamol\n",
+            "=======================================================\n",
+            "Chemical Structure (SMILES)   : CC(=O)NC1=CC=C(C=C1)O\n",
+            "Molecular Weight (MW)         : 151.16 Da (Limit: <= 500)\n",
+            "Lipophilicity (LogP)          : 1.35   (Limit: <= 5)\n",
+            "Hydrogen Bond Donors (HBD)    : 2       (Limit: <= 5)\n",
+            "Hydrogen Bond Acceptors (HBA) : 2      (Limit: <= 10)\n",
+            "Polar Surface Area (TPSA)     : 49.33 Å²(Limit: <= 140)\n",
+            "Rotatable Bonds               : 1     (Limit: <= 10)\n",
+            "-------------------------------------------------------\n",
+            "Total Rule Violations         : 0\n",
+            "Screening Verdict             : Favorable Drug-Likeness (Likely Orally Bioavailable)\n",
+            "=======================================================\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
